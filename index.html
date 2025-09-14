@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digit Recognition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .upload-section, .camera-section {
+            margin: 30px 0;
+            padding: 30px;
+            border: 2px dashed #ddd;
+            border-radius: 15px;
+            background: #f9f9f9;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover, .camera-section:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .section-title {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .camera-button, .capture-button, .upload-button {
+            background: linear-gradient(45deg, #764ba2, #667eea);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+        }
+
+        .camera-button:hover, .capture-button:hover, .upload-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(118, 75, 162, 0.4);
+        }
+
+        .camera-button:disabled, .capture-button:disabled, .upload-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #video {
+            max-width: 100%;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        #canvas {
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .preview-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .result {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+        }
+
+        .predicted-digit {
+            font-size: 4em;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .confidence {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        .probabilities {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .probability-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .probability-digit {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .probability-value {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .probabilities {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔢 Digit Recognition</h1>
+        
+        <!-- File Upload Section -->
+        <div class="upload-section">
+            <div class="section-title">📁 Upload Image</div>
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" class="file-input" accept="image/*">
+                <button class="file-input-button">Choose Image File</button>
+            </div>
+            <div id="filePreview"></div>
+            <button id="uploadButton" class="upload-button hidden">Predict Digit</button>
+        </div>
+
+        <!-- Camera Section -->
+        <div class="camera-section">
+            <div class="section-title">📷 Use Camera</div>
+            <button id="cameraButton" class="camera-button">Start Camera</button>
+            <video id="video" class="hidden" width="320" height="240" autoplay></video>
+            <canvas id="canvas" class="hidden" width="320" height="240"></canvas>
+            <br>
+            <button id="captureButton" class="capture-button hidden" disabled>Capture & Predict</button>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden"></div>
+        <div id="error" class="hidden"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        
+        let stream = null;
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        
+        // File upload handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('filePreview');
+                    preview.innerHTML = `<img src="${e.target.result}" class="preview-image" alt="Preview">`;
+                    document.getElementById('uploadButton').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Upload button handling
+        document.getElementById('uploadButton').addEventListener('click', function() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (file) {
+                uploadFile(file);
+            }
+        });
+
+        // Camera functionality
+        document.getElementById('cameraButton').addEventListener('click', async function() {
+            try {
+                if (stream) {
+                    // Stop camera
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                    video.classList.add('hidden');
+                    canvas.classList.add('hidden');
+                    document.getElementById('captureButton').classList.add('hidden');
+                    this.textContent = 'Start Camera';
+                } else {
+                    // Start camera
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: 320, height: 240 } 
+                    });
+                    video.srcObject = stream;
+                    video.classList.remove('hidden');
+                    document.getElementById('captureButton').classList.remove('hidden');
+                    document.getElementById('captureButton').disabled = false;
+                    this.textContent = 'Stop Camera';
+                }
+            } catch (err) {
+                showError('Error accessing camera: ' + err.message);
+            }
+        });
+
+        // Capture button handling
+        document.getElementById('captureButton').addEventListener('click', function() {
+            ctx.drawImage(video, 0, 0, 320, 240);
+            canvas.classList.remove('hidden');
+            
+            // Convert canvas to base64
+            const imageData = canvas.toDataURL('image/png');
+            uploadBase64Image(imageData);
+        });
+
+        // Upload file function
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            showLoading(true);
+            hideError();
+            
+            try {
+                const response = await fetch(`${API_URL}/predict`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult(result);
+                } else {
+                    showError(result.error || 'Prediction failed');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Upload base64 image function
+        async function uploadBase64Image(imageData) {
+            showLoading(true);
+            hideError();
+            
+            try {
+                const response = await fetch(`${API_URL}/predict`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ imageData: imageData })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult(result);
+                } else {
+                    showError(result.error || 'Prediction failed');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Show result function
+        function showResult(result) {
+            const resultsDiv = document.getElementById('results');
+            
+            let probabilitiesHtml = '';
+            for (let digit = 0; digit < 10; digit++) {
+                const prob = (result.probabilities[digit.toString()] * 100).toFixed(1);
+                probabilitiesHtml += `
+                    <div class="probability-item">
+                        <div class="probability-digit">${digit}</div>
+                        <div class="probability-value">${prob}%</div>
+                    </div>
+                `;
+            }
+            
+            resultsDiv.innerHTML = `
+                <div class="result">
+                    <h2>🎯 Prediction Result</h2>
+                    <div class="predicted-digit">${result.predicted_digit}</div>
+                    <div class="confidence">Confidence: ${(result.confidence * 100).toFixed(1)}%</div>
+                    <div class="section-title" style="color: white; margin-top: 20px;">All Probabilities:</div>
+                    <div class="probabilities">${probabilitiesHtml}</div>
+                </div>
+            `;
+            
+            resultsDiv.classList.remove('hidden');
+        }
+
+        // Show error function
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
+            errorDiv.classList.remove('hidden');
+        }
+
+        // Hide error function
+        function hideError() {
+            document.getElementById('error').classList.add('hidden');
+        }
+
+        // Show loading function
+        function showLoading(show) {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (show) {
+                    button.disabled = true;
+                    if (!button.innerHTML.includes('loading')) {
+                        button.innerHTML += '<span class="loading"></span>';
+                    }
+                } else {
+                    button.disabled = false;
+                    const loadingSpan = button.querySelector('.loading');
+                    if (loadingSpan) {
+                        loadingSpan.remove();
+                    }
+                }
+            });
+        }
+
+        // Check if API is available on page load
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const result = await response.json();
+                if (!result.model_loaded) {
+                    showError('Model is not loaded on the server. Please check the backend.');
+                }
+            } catch (error) {
+                showError('Cannot connect to the prediction server. Please ensure the backend is running on port 5000.');
+            }
+        });
+    </script>
+</body>
+</html>
