@@ -256,8 +256,7 @@
     </div>
 
     <script>
-        // ✅ Updated to use your Render backend URL
-        const API_URL = 'https://mnist-project-pnit.onrender.com';
+        const API_URL = 'http://localhost:5000';
         
         let stream = null;
         let video = document.getElementById('video');
@@ -291,6 +290,7 @@
         document.getElementById('cameraButton').addEventListener('click', async function() {
             try {
                 if (stream) {
+                    // Stop camera
                     stream.getTracks().forEach(track => track.stop());
                     stream = null;
                     video.classList.add('hidden');
@@ -298,6 +298,7 @@
                     document.getElementById('captureButton').classList.add('hidden');
                     this.textContent = 'Start Camera';
                 } else {
+                    // Start camera
                     stream = await navigator.mediaDevices.getUserMedia({ 
                         video: { width: 320, height: 240 } 
                     });
@@ -316,6 +317,8 @@
         document.getElementById('captureButton').addEventListener('click', function() {
             ctx.drawImage(video, 0, 0, 320, 240);
             canvas.classList.remove('hidden');
+            
+            // Convert canvas to base64
             const imageData = canvas.toDataURL('image/png');
             uploadBase64Image(imageData);
         });
@@ -335,6 +338,7 @@
                 });
                 
                 const result = await response.json();
+                
                 if (result.success) {
                     showResult(result);
                 } else {
@@ -355,11 +359,14 @@
             try {
                 const response = await fetch(`${API_URL}/predict`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({ imageData: imageData })
                 });
                 
                 const result = await response.json();
+                
                 if (result.success) {
                     showResult(result);
                 } else {
@@ -372,9 +379,10 @@
             }
         }
 
-        // Show result
+        // Show result function
         function showResult(result) {
             const resultsDiv = document.getElementById('results');
+            
             let probabilitiesHtml = '';
             for (let digit = 0; digit < 10; digit++) {
                 const prob = (result.probabilities[digit.toString()] * 100).toFixed(1);
@@ -385,6 +393,7 @@
                     </div>
                 `;
             }
+            
             resultsDiv.innerHTML = `
                 <div class="result">
                     <h2>🎯 Prediction Result</h2>
@@ -394,22 +403,23 @@
                     <div class="probabilities">${probabilitiesHtml}</div>
                 </div>
             `;
+            
             resultsDiv.classList.remove('hidden');
         }
 
-        // Show error
+        // Show error function
         function showError(message) {
             const errorDiv = document.getElementById('error');
             errorDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
             errorDiv.classList.remove('hidden');
         }
 
-        // Hide error
+        // Hide error function
         function hideError() {
             document.getElementById('error').classList.add('hidden');
         }
 
-        // Show loading
+        // Show loading function
         function showLoading(show) {
             const buttons = document.querySelectorAll('button');
             buttons.forEach(button => {
@@ -421,12 +431,14 @@
                 } else {
                     button.disabled = false;
                     const loadingSpan = button.querySelector('.loading');
-                    if (loadingSpan) loadingSpan.remove();
+                    if (loadingSpan) {
+                        loadingSpan.remove();
+                    }
                 }
             });
         }
 
-        // Check backend health on load
+        // Check if API is available on page load
         window.addEventListener('load', async function() {
             try {
                 const response = await fetch(`${API_URL}/health`);
@@ -435,7 +447,7 @@
                     showError('Model is not loaded on the server. Please check the backend.');
                 }
             } catch (error) {
-                showError('Cannot connect to the prediction server. Please ensure the backend is deployed and accessible.');
+                showError('Cannot connect to the prediction server. Please ensure the backend is running on port 5000.');
             }
         });
     </script>
